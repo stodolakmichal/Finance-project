@@ -1,4 +1,4 @@
-from main.data_entry import get_category
+from functions.data_entry import get_category
 import pytest
 from unittest.mock import patch
 

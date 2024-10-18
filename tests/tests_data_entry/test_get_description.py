@@ -1,4 +1,4 @@
-from main.data_entry import get_description
+from functions.data_entry import get_description
 from unittest.mock import patch
 
 

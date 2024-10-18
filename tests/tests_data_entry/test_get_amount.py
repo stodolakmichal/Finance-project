@@ -1,5 +1,5 @@
 import pytest
-from main.data_entry import get_amount
+from functions.data_entry import get_amount
 from unittest.mock import patch
 
 
