@@ -21,7 +21,7 @@ def get_amount():
     try:
         amount = float(input("Enter the amount: "))
         if amount <= 0:
-            raise ValueError("Amount must by a non-negative non-zero value.")
+            raise ValueError("Amount must be a non-negative non-zero value.")
         return amount
     except ValueError as e:
         print(e)
