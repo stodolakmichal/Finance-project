@@ -1,7 +1,7 @@
 import pandas as pd
 import csv
 from datetime import datetime
-from data_entry import get_category, get_amount, get_date, get_description
+from main.data_entry import get_category, get_amount, get_date, get_description
 import matplotlib.pyplot as plt
 
 
