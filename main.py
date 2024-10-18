@@ -43,7 +43,7 @@ class CSV:
         filtered_df = df.loc[mask]
 
         if filtered_df.empty:
-            print("No transactions found in the given date range.")
+            print("No transactions found in the given date range")
         else:
             print(
                 f"Transactions from {start_date.strftime(CSV.FORMAT)} to {end_date.strftime(CSV.FORMAT)}"
