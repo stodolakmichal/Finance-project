@@ -1,4 +1,3 @@
-import pytest
 from main.data_entry import get_date
 from unittest.mock import patch
 from datetime import datetime

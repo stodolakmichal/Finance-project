@@ -1,7 +1,6 @@
 import pytest
 from main.data_entry import get_amount
 from unittest.mock import patch
-from datetime import datetime
 
 
 def test_get_amount_zero():

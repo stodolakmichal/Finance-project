@@ -1,5 +1,4 @@
 from main.data_entry import get_description
-import pytest
 from unittest.mock import patch
 
 
