@@ -1,6 +1,7 @@
 import pandas as pd
+import pytest
 
-from main import CSV
+from main import CSV, plot_transaction
 from unittest.mock import patch, mock_open
 from io import StringIO
 
@@ -55,3 +56,35 @@ class TestCSV:
             assert total_income == 1200
             assert total_expense == 650
             assert (total_income - total_expense) == 550
+
+
+@pytest.fixture
+def transaction_data():
+    data = {
+        'date': pd.date_range(start='2023-10-01', periods=5, freq='D'),
+        'category': ['Income', 'Expense', 'Income', 'Expense', 'Income'],
+        'amount': [100, 50, 200, 100, 300]
+    }
+    return pd.DataFrame(data)
+
+
+def test_plot_transaction_data(transaction_data):
+    df = transaction_data.copy()
+
+    df.set_index('date', inplace=True)
+
+    income_df = df[df["category"] == "Income"].resample("D").sum().reindex(df.index, fill_value=0)
+    expense_df = df[df["category"] == "Expense"].resample("D").sum().reindex(df.index, fill_value=0)
+
+    assert len(income_df) == len(df)
+    assert len(expense_df) == len(df)
+
+    assert income_df['amount'].sum() == 600
+    assert expense_df['amount'].sum() == 150
+
+
+def test_plot_transaction_visualization(transaction_data):
+    with patch("matplotlib.pyplot.plot") as mock_plot, patch("matplotlib.pyplot.show") as mock_show:
+        plot_transaction(transaction_data)
+        assert mock_plot.call_count == 2
+        mock_show.assert_called_once()
