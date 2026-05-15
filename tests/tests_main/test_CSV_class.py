@@ -7,17 +7,21 @@ from io import StringIO
 
 
 class TestCSV:
+    def setup_method(self):
+        """Create a CSV instance for each test."""
+        self.csv_manager = CSV("test_finance_data.csv")
+
     def test_initialize_csv_file_exists(self):
         with patch('pandas.read_csv') as mock_read_csv:
-            CSV.initialize_csv()
-            mock_read_csv.assert_called_once_with(CSV.CSV_FILE)
+            self.csv_manager.initialize_csv()
+            mock_read_csv.assert_called_once_with(self.csv_manager.csv_file)
 
     def test_initialize_csv_file_not_found(self):
         with patch('pandas.read_csv', side_effect=FileNotFoundError):
             with patch('pandas.DataFrame.to_csv') as mock_to_csv:
-                CSV.initialize_csv()
+                self.csv_manager.initialize_csv()
                 df = pd.DataFrame(columns=CSV.COLUMNS)
-                mock_to_csv.assert_called_once_with(CSV.CSV_FILE, index=False)
+                mock_to_csv.assert_called_once_with(self.csv_manager.csv_file, index=False)
                 assert list(df.columns) == CSV.COLUMNS
 
     def test_add_entry(self):
@@ -30,8 +34,8 @@ class TestCSV:
         with patch('builtins.open', mock_open()) as mock_file:
             with patch('csv.DictWriter') as mock_DictWriter:
                 mock_writer_instance = mock_DictWriter.return_value
-                CSV.add_entry(**entry)
-                mock_file.assert_called_once_with(CSV.CSV_FILE, "a", newline="")
+                self.csv_manager.add_entry(**entry)
+                mock_file.assert_called_once_with(self.csv_manager.csv_file, "a", newline="")
                 mock_DictWriter.assert_called_once_with(mock_file(), fieldnames=CSV.COLUMNS)
                 mock_writer_instance.writerow.assert_called_once_with(entry)
 
@@ -45,7 +49,7 @@ class TestCSV:
     """
 
         with patch("pandas.read_csv", return_value=pd.read_csv(StringIO(csv_data))):
-            result = CSV.get_transactions("01-10-2024", "05-10-2024")
+            result = self.csv_manager.get_transactions("01-10-2024", "05-10-2024")
 
             assert len(result) == 4
             assert result["amount"].sum() == 1850
@@ -56,6 +60,21 @@ class TestCSV:
             assert total_income == 1200
             assert total_expense == 650
             assert (total_income - total_expense) == 550
+
+    def test_get_transactions_file_not_found(self):
+        with patch("pandas.read_csv", side_effect=FileNotFoundError):
+            result = self.csv_manager.get_transactions("01-10-2024", "05-10-2024")
+            assert result.empty
+
+    def test_get_transactions_empty_file(self):
+        with patch("pandas.read_csv", side_effect=pd.errors.EmptyDataError):
+            result = self.csv_manager.get_transactions("01-10-2024", "05-10-2024")
+            assert result.empty
+
+    def test_get_transactions_corrupted_file(self):
+        with patch("pandas.read_csv", side_effect=pd.errors.ParserError):
+            result = self.csv_manager.get_transactions("01-10-2024", "05-10-2024")
+            assert result.empty
 
 
 @pytest.fixture
@@ -73,8 +92,18 @@ def test_plot_transaction_data(transaction_data):
 
     df.set_index('date', inplace=True)
 
-    income_df = df[df["category"] == "Income"].resample("D").sum().reindex(df.index, fill_value=0)
-    expense_df = df[df["category"] == "Expense"].resample("D").sum().reindex(df.index, fill_value=0)
+    income_df = (
+        df[df["category"] == "Income"]
+        .resample("D")
+        .sum(numeric_only=True)
+        .reindex(df.index, fill_value=0)
+    )
+    expense_df = (
+        df[df["category"] == "Expense"]
+        .resample("D")
+        .sum(numeric_only=True)
+        .reindex(df.index, fill_value=0)
+    )
 
     assert len(income_df) == len(df)
     assert len(expense_df) == len(df)
@@ -84,7 +113,28 @@ def test_plot_transaction_data(transaction_data):
 
 
 def test_plot_transaction_visualization(transaction_data):
-    with patch("matplotlib.pyplot.plot") as mock_plot, patch("matplotlib.pyplot.show") as mock_show:
+    with patch("matplotlib.pyplot.plot") as mock_plot, \
+         patch("matplotlib.pyplot.show") as mock_show:
         plot_transaction(transaction_data)
         assert mock_plot.call_count == 2
         mock_show.assert_called_once()
+
+
+def test_plot_transaction_does_not_modify_original(transaction_data):
+    """Ensure plot_transaction does not modify the original DataFrame."""
+    original_columns = list(transaction_data.columns)
+    original_index_name = transaction_data.index.name
+
+    with patch("matplotlib.pyplot.show"):
+        plot_transaction(transaction_data)
+
+    assert list(transaction_data.columns) == original_columns
+    assert transaction_data.index.name == original_index_name
+
+
+def test_plot_transaction_empty_dataframe():
+    """Ensure plot_transaction handles empty DataFrame gracefully."""
+    empty_df = pd.DataFrame(columns=["date", "amount", "category", "description"])
+    with patch("builtins.print") as mock_print:
+        plot_transaction(empty_df)
+        mock_print.assert_called_with("No data to plot.")
