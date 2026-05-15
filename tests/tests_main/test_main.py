@@ -1,3 +1,5 @@
+import pandas as pd
+
 from main import main
 from unittest.mock import patch
 
@@ -18,9 +20,10 @@ def test_main_option_2_without_plot():
 
 
 def test_main_option_2_with_plot():
+    mock_df = pd.DataFrame({"date": ["01-01-2000"], "amount": [100], "category": ["Income"]})
     with patch("builtins.input", side_effect=['2', 'y', '3']):
         with patch("main.get_date", side_effect=['01-01-2000', '01-01-2222']):
-            with patch("main.CSV.get_transactions") as mocked_get_transactions:
+            with patch("main.CSV.get_transactions", return_value=mock_df) as mocked_get_transactions:
                 with patch("main.plot_transaction") as mocked_plot_transaction:
                     main()
                     mocked_get_transactions.assert_called_once_with('01-01-2000', '01-01-2222')
